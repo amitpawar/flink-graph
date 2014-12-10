@@ -125,6 +125,10 @@ public class Graph<K extends Comparable<K> & Serializable, VV extends Serializab
 			return new TupleTypeInfo<Vertex<K, NV>>(keyType, newVertexValueType);
 		}
     }
+
+	private static final class UtilClass {
+
+	}
     
     /**
      * Apply a function to the attribute of each edge in the graph.
