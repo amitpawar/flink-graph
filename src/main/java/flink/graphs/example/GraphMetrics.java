@@ -63,7 +63,7 @@ public class GraphMetrics implements ProgramDescription {
 		/** compute the average node degree **/
 		DataSet<Tuple2<Long, Long>> verticesWithDegrees = graph.getDegrees();
 
-		DataSet<Double> avgNodeDegree = verticesWithDegrees.project(1).types(Long.class)
+		DataSet<Double> avgNodeDegree = verticesWithDegrees.<Tuple1<Long>>project(1)
 				.aggregate(Aggregations.SUM, 0).map(new AvgNodeDegreeMapper())
 				.withBroadcastSet(numVertices, "numberOfVertices");
 		
