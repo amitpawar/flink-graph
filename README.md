@@ -1,4 +1,4 @@
-flink-graph
+G07-flink-graph
 ===========
 
 Graph API for Apache Flink
