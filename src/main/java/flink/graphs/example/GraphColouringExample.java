@@ -19,11 +19,14 @@ import flink.graphs.library.GraphColouring;
 
 public class GraphColouringExample {
 
+	private static int maxiteration;
+	
 	public static void main(String[] args) throws Exception {
 
 		ExecutionEnvironment env = ExecutionEnvironment
 				.getExecutionEnvironment();
-
+		maxiteration =10;
+		
 		DataSource<String> input = env
 				.readTextFile("/home/hung/aim3project.graph/src/test/resources/smallGraph/arcs");
 
@@ -39,7 +42,8 @@ public class GraphColouringExample {
 		Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> graphInputMapped = graph
 				.mapVertices(new InitVerticesMapper());
 
-		GraphColouring algorithm = new GraphColouring(10);
+		GraphColouring algorithm = new GraphColouring(maxiteration);
+		
 		Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> resultGraph = graphInputMapped
 				.run(algorithm);
 		DataSet<Vertex<Long, Tuple3<Integer, Integer, Integer>>> result = resultGraph
@@ -75,8 +79,8 @@ public class GraphColouringExample {
 
 		public Tuple3<Integer, Integer, Integer> map(Vertex<K, Double> value) {
 
-			return new Tuple3<Integer, Integer, Integer>((Integer) value.f0, 0,
-					0);
+			return new Tuple3<Integer, Integer, Integer>(-1, -1,
+					-1);
 		}
 	}
 
