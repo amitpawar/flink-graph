@@ -4,9 +4,11 @@ package flink.graphs.library;
 import java.io.Serializable;
 import java.util.Random;
 
+import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.spargel.java.MessageIterator;
 import org.apache.flink.spargel.java.MessagingFunction;
+import org.apache.flink.spargel.java.VertexCentricIteration;
 import org.apache.flink.spargel.java.VertexUpdateFunction;
 import org.apache.flink.types.NullValue;
 
@@ -26,26 +28,144 @@ public class GraphColouring<K extends Comparable<K> & Serializable> implements G
 	private static final int INS = 2;
 	private static final int NOTINS = 3;
 	
+	private static final int SDegreeInit1 = 0;
+	private static final int SDegreeInit2 = 1;
+	private static final int SSelection = 2;
+	private static final int SConflictResolution = 3;
+	private static final int SDegreeAdj1 = 4;
+	private static final int SDegreeAdj2 = 5;
+	private static final int SColorAss = 6;
+	
+	
 	//f0 colour, f1 type, f2 degree
 	
     private int maxIterations;
+    private int colour;
 
-    public GraphColouring(int maxIterations) {
+    public GraphColouring(int maxIterations, int colour) {
         this.maxIterations = maxIterations;
+        this.colour = colour;
     }
 
     @Override
     public Graph<K, Tuple3<Integer, Integer, Integer>, NullValue> run(Graph<K, Tuple3<Integer, Integer, Integer>, NullValue> network) {
-        return network.runVertexCentricIteration(new VertexDegreeInit1<K>(), new VertexDegreeInitM1<K>(), maxIterations);
-    	//return null;
-    	//return network.runVertexCentricIteration(
-                //new VertexRankUpdater<K>(numVertices, beta),
-                //new RankMessenger<K>(),
-                //maxIterations
-        //);
+        return network.runVertexCentricIteration(new VertexUpdater<K>(colour), new MessagingFunc<K>(), maxIterations);
     }
 
-    //INIT 1 and 2 should only execute once per colour and INIT 1 should not receive anything
+    @SuppressWarnings("serial")
+    public static final class VertexUpdater<K extends Comparable<K> & Serializable> 
+    	extends VertexUpdateFunction<K, Tuple3<Integer, Integer, Integer>, Integer> {
+
+    	private int colour = 0;
+
+    	public VertexUpdater(int colour) {
+    		this.colour = colour;
+    	}
+    	
+		@Override
+		public void updateVertex(K vertexKey, Tuple3<Integer, Integer, Integer> vertexValue, MessageIterator<Integer> inMessages) throws Exception {
+			//TODO do the filtering, otherwise this will be executed for all nodes, even the ones that have colour
+			if (getSuperstepNumber() == 1) { //DegreeInit1
+				Tuple3<Integer, Integer, Integer> newState = vertexValue.copy();
+				newState.f1 = UNKNOWN;
+				setNewVertexValue(newState);
+			}
+			else if (getSuperstepNumber() == 2) { //DegreeInit2
+				int degree = 0;
+				while (inMessages.hasNext()) {
+					inMessages.next();
+					degree++;
+				}
+				Tuple3<Integer, Integer, Integer> newState = vertexValue.copy();
+				newState.f2 = degree;
+				setNewVertexValue(newState);
+			}
+			else if (((getSuperstepNumber()-3))%4 == 0) { //Select
+				if (vertexValue.f1.intValue() == UNKNOWN) {
+					Random r = new Random();
+					if (vertexValue.f2.doubleValue() == 0 || (r.nextDouble() < ((double) 1 /((double) 2 * vertexValue.f2.doubleValue())))) {
+						Tuple3<Integer, Integer, Integer> newState = vertexValue.copy();
+						newState.f1 = TENTATIVELYINS;
+						setNewVertexValue(newState);						
+					}
+				}
+			}
+			else if (((getSuperstepNumber()-3))%4 == 1) { //Conflict
+				if (vertexValue.f1.intValue() == TENTATIVELYINS) {
+					boolean amMinimum = true;
+					while (inMessages.hasNext()) {
+						if (inMessages.next().compareTo((Integer) vertexKey) <= 0) { //the incoming is lower
+							amMinimum = false;
+							break;
+						}
+					}
+					Tuple3<Integer, Integer, Integer> newState = vertexValue.copy();
+					newState.f1 = amMinimum ? INS : UNKNOWN;
+					if (newState.f1 == INS) {
+						newState.f0 = colour;
+					}
+					setNewVertexValue(newState);
+				}
+			}
+			else if (((getSuperstepNumber()-3))%4 == 2) { //DegreeAdj1
+				if (vertexValue.f1.intValue() == UNKNOWN) {
+					if (inMessages.hasNext()) {
+						Tuple3<Integer, Integer, Integer> newState = vertexValue.copy();
+						newState.f1 = NOTINS;
+						setNewVertexValue(newState);
+					}
+				}
+			}
+			else if (((getSuperstepNumber()-3))%4 == 3) { //DegreeAdj2
+				if (vertexValue.f1.intValue() == UNKNOWN) {
+					int degree = 0;
+					while (inMessages.hasNext()) {
+						inMessages.next();
+						degree++;
+					}
+					Tuple3<Integer, Integer, Integer> newState = vertexValue.copy();
+					newState.f2 -= degree;
+					setNewVertexValue(newState);
+				}
+			}
+		}
+    }
+    
+    @SuppressWarnings("serial")
+    public static final class MessagingFunc<K extends Comparable<K> & Serializable> 
+		extends MessagingFunction<K, Tuple3<Integer, Integer, Integer>, Integer, NullValue> {
+
+		@Override
+		public void sendMessages(K vertexKey, Tuple3<Integer, Integer, Integer> vertexValue) throws Exception {
+			
+			if (getSuperstepNumber() == 1) { //DegreeInit1
+				sendMessageToAllNeighbors(new Integer(0));
+			}
+			else if (getSuperstepNumber() == 2) { //DegreeInit2
+				
+			}
+			else if (((getSuperstepNumber()-3))%4 == 0) { //Select
+				if (vertexValue.f1.intValue() == TENTATIVELYINS) {
+					sendMessageToAllNeighbors((Integer) vertexKey);
+				}
+			}
+			else if (((getSuperstepNumber()-3))%4 == 1) { //Conflict
+				if (vertexValue.f1.intValue() == INS) {
+					sendMessageToAllNeighbors(new Integer(0));
+				}
+			}
+			else if (((getSuperstepNumber()-3))%4 == 2) { //DegreeAdj1
+				if (vertexValue.f1.intValue() == NOTINS) {
+					sendMessageToAllNeighbors(new Integer(0));
+				}
+			}
+			else if (((getSuperstepNumber()-3))%4 == 3) { //DegreeAdj2
+				
+			}
+		}
+    }
+    
+/*    //INIT 1 and 2 should only execute once per colour and INIT 1 should not receive anything
     @SuppressWarnings("serial")
     public static final class VertexDegreeInit1<K extends Comparable<K> & Serializable> 
     	extends VertexUpdateFunction<K, Tuple3<Integer, Integer, Integer>, NullValue> {
@@ -277,5 +397,5 @@ public class GraphColouring<K extends Comparable<K> & Serializable> implements G
 				Tuple3<Integer, Integer, Integer> vertexValue) throws Exception {
 			//USELESS
 		}
-	}
+	}*/
 }
