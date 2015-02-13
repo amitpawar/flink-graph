@@ -30,20 +30,22 @@ public class GraphColouringExample {
 		maxiteration = 10;
 
 		DataSource<String> input = env
-				.readTextFile("/home/hung/aim3project.graph/src/test/resources/smallGraph/arcs");
+				.readTextFile("/home/hung/aim3project.graph/src/test/resources/smallGraph/IMPROTest");
 
 		DataSet<Vertex<Long, Long>> nodes = input.flatMap(new NodeReader())
 				.distinct();
 
-		DataSet<Edge<Long, Double>> edges = input.flatMap(new EdgeReader())
+		DataSet<Edge<Long, NullValue>> edges = input.flatMap(new EdgeReader())
 				.distinct();
 
-		Graph<Long, Long, Double> graph = new Graph<Long, Long, Double>(nodes,
+		Graph<Long, Long, NullValue> graph = new Graph<Long, Long, NullValue>(nodes,
 				edges, env);
 
+		
 		Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> graphInputMapped = graph
 				.mapVertices(new InitVerticesMapper());
 
+		graphInputMapped.getEdges().print();
 //		DeltaIteration<Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue>, Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue>> 
 //		iteration = graphInputMapped.
 		        //verticesWithInitialId.iterateDelta(verticesWithInitialId, maxIterations, 0);
@@ -66,9 +68,12 @@ public class GraphColouringExample {
 			//graphFiltered = resultGraph; // filtered
 
 			env.execute();
+			
 			// check if the filtered result is empty, if so, break
 			colour++;
+			System.out.println("Colours:" + colour);
 		}
+		
 	}
 
 	@SuppressWarnings("serial")
@@ -83,11 +88,11 @@ public class GraphColouringExample {
 
 	@SuppressWarnings("serial")
 	public static class EdgeReader implements
-			FlatMapFunction<String, Edge<Long, Double>> {
+			FlatMapFunction<String, Edge<Long, NullValue>> {
 
 		private static final Pattern SEPARATOR = Pattern.compile("[ \t,]");
 
-		public void flatMap(String s, Collector<Edge<Long, Double>> collector)
+		public void flatMap(String s, Collector<Edge<Long, NullValue>> collector)
 				throws Exception {
 			if (!s.startsWith("%")) {
 				String[] tokens = SEPARATOR.split(s);
@@ -95,7 +100,7 @@ public class GraphColouringExample {
 				long source = Long.parseLong(tokens[0]);
 				long target = Long.parseLong(tokens[1]);
 
-				collector.collect(new Edge<Long, Double>(source, target, 1.0));
+				collector.collect(new Edge<Long, NullValue>(source, target));
 			}
 		}
 	}
