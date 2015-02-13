@@ -32,20 +32,20 @@ public class GraphColouringExample {
 		DataSource<String> input = env
 				.readTextFile("/home/hung/aim3project.graph/src/test/resources/smallGraph/IMPROTest");
 
-		DataSet<Vertex<Long, Long>> nodes = input.flatMap(new NodeReader())
+		DataSet<Vertex<Long, Tuple3<Integer, Integer, Integer>>> nodes = input.flatMap(new NodeReader())
 				.distinct();
 
 		DataSet<Edge<Long, NullValue>> edges = input.flatMap(new EdgeReader())
 				.distinct();
 
-		Graph<Long, Long, NullValue> graph = new Graph<Long, Long, NullValue>(nodes,
+		Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> graph = new Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue>(nodes,
 				edges, env);
 
 		
-		Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> graphInputMapped = graph
-				.mapVertices(new InitVerticesMapper());
+//		Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> graphInputMapped = graph
+//				.mapVertices(new InitVerticesMapper());
 
-		graphInputMapped.getEdges().print();
+		graph.getEdges().print();
 //		DeltaIteration<Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue>, Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue>> 
 //		iteration = graphInputMapped.
 		        //verticesWithInitialId.iterateDelta(verticesWithInitialId, maxIterations, 0);
@@ -53,7 +53,7 @@ public class GraphColouringExample {
 		
 		
 		int colour = 0;
-		Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> graphFiltered = graphInputMapped;
+		Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> graphFiltered = graph;
 		while (colour < 4) {
 			GraphColouring algorithm = new GraphColouring(maxiteration, colour);
 
@@ -105,23 +105,24 @@ public class GraphColouringExample {
 		}
 	}
 
-	public static final class InitVerticesMapper<K extends Comparable<K> & Serializable>
-			implements
-			MapFunction<Vertex<K, Double>, Tuple3<Integer, Integer, Integer>> {
-
-		public Tuple3<Integer, Integer, Integer> map(Vertex<K, Double> value) {
-
-			return new Tuple3<Integer, Integer, Integer>(-1, -1, -1);
-		}
-	}
-
+//	public static final class InitVerticesMapper<K extends Comparable<K> & Serializable>
+//			implements
+//			MapFunction<Vertex<K, Double>, Vertex<Long, Tuple3<Integer, Integer, Integer>>> {
+//
+//		public Vertex<Long, Tuple3<Integer, Integer, Integer>> map(Vertex<K, Double> value) {
+//
+//			
+//			return new Tuple3<Integer, Integer, Integer>(-1, -1, -1);
+//		}
+//	}
+//
 	@SuppressWarnings("serial")
 	public static class NodeReader implements
-			FlatMapFunction<String, Vertex<Long, Long>> {
+			FlatMapFunction<String, Vertex<Long, Tuple3<Integer, Integer, Integer>>> {
 
 		private static final Pattern SEPARATOR = Pattern.compile("[ \t,]");
 
-		public void flatMap(String s, Collector<Vertex<Long, Long>> collector)
+		public void flatMap(String s, Collector<Vertex<Long, Tuple3<Integer, Integer, Integer>>> collector)
 				throws Exception {
 			if (!s.startsWith("%")) {
 				String[] tokens = SEPARATOR.split(s);
@@ -130,8 +131,8 @@ public class GraphColouringExample {
 				long source = Long.parseLong(tokens[0]);
 				long target = Long.parseLong(tokens[1]);
 
-				collector.collect(new Vertex<Long, Long>(ctr++, source));
-				collector.collect(new Vertex<Long, Long>(ctr++, target));
+				collector.collect(new Vertex<Long, Tuple3<Integer, Integer, Integer>>(source, new Tuple3<Integer, Integer, Integer>(-1, -1, -1)));
+				collector.collect(new Vertex<Long, Tuple3<Integer, Integer, Integer>>(target, new Tuple3<Integer, Integer, Integer>(-1, -1, -1)));
 			}
 		}
 	}
