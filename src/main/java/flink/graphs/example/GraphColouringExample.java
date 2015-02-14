@@ -27,8 +27,10 @@ public class GraphColouringExample {
 
 		ExecutionEnvironment env = ExecutionEnvironment
 				.getExecutionEnvironment();
+		
 		maxiteration = 10;
 
+		//Id cannot be 0
 		DataSource<String> input = env
 				.readTextFile("/home/hung/aim3project.graph/src/test/resources/smallGraph/IMPROTest");
 
@@ -41,25 +43,33 @@ public class GraphColouringExample {
 		Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> graph = new Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue>(nodes,
 				edges, env);
 
-		
 //		Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> graphInputMapped = graph
 //				.mapVertices(new InitVerticesMapper());
 
-		graph.getEdges().print();
+		//graph.getEdges().print();
 //		DeltaIteration<Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue>, Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue>> 
 //		iteration = graphInputMapped.
 		        //verticesWithInitialId.iterateDelta(verticesWithInitialId, maxIterations, 0);
 
 		
-		
 		int colour = 0;
+		
+		//GraphColouring algorithm = new GraphColouring(maxiteration, colour);
+		//Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> resultGraph = graph
+		//.run(algorithm);
+		
+		//resultGraph.getVertices().print();
+		//env.execute();
+
 		Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> graphFiltered = graph;
 		while (colour < 4) {
+			System.out.println("Colours:" + colour);
 			GraphColouring algorithm = new GraphColouring(maxiteration, colour);
 
 			
 			Graph<Long, Tuple3<Integer, Integer, Integer>, NullValue> resultGraph = graphFiltered
 					.run(algorithm);
+			
 			graphFiltered = resultGraph.filterOnVertices(new FilterVertex());
 
 			DataSet<Vertex<Long, Tuple3<Integer, Integer, Integer>>> result = graphFiltered
@@ -71,9 +81,8 @@ public class GraphColouringExample {
 			
 			// check if the filtered result is empty, if so, break
 			colour++;
-			System.out.println("Colours:" + colour);
 		}
-		
+
 	}
 
 	@SuppressWarnings("serial")
@@ -100,7 +109,8 @@ public class GraphColouringExample {
 				long source = Long.parseLong(tokens[0]);
 				long target = Long.parseLong(tokens[1]);
 
-				collector.collect(new Edge<Long, NullValue>(source, target));
+				collector.collect(new Edge<Long, NullValue>(source, target, new NullValue()));
+				collector.collect(new Edge<Long, NullValue>(target, source, new NullValue()));
 			}
 		}
 	}
