@@ -9,6 +9,7 @@ import org.apache.flink.spargel.java.MessageIterator;
 import org.apache.flink.spargel.java.MessagingFunction;
 import org.apache.flink.spargel.java.VertexCentricIteration;
 import org.apache.flink.spargel.java.VertexUpdateFunction;
+import org.apache.flink.spargel.java.record.SpargelIteration;
 import org.apache.flink.types.NullValue;
 
 import flink.graphs.Graph;
@@ -50,7 +51,7 @@ public class GraphColouring<K extends Comparable<K> & Serializable> implements
 		return network.runVertexCentricIteration(new VertexUpdater<K>(colour),
 				new MessagingFunc<K>(), maxIterations);
 	}
-
+	
 	@SuppressWarnings("serial")
 	public static final class VertexUpdater<K extends Comparable<K> & Serializable>
 			extends
