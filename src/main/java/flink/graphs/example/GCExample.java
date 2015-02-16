@@ -48,11 +48,9 @@ public class GCExample {
 		if (!parseParameters(args)) {
 			return;
 		}
-		//ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-		ExecutionEnvironment env = ExecutionEnvironment.createLocalEnvironment();
+		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 		
-		maxiteration = 10;
-
+		
 		DataSource<String> input = env.readTextFile(argPathToArc);
 
 		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodes = input.flatMap(new NodeReader()).distinct();

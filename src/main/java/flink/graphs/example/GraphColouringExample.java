@@ -78,8 +78,9 @@ public class GraphColouringExample {
 			RemoteCollectorImpl.collectLocal(num, collection);
 			
 			
-			colourGraph.getVertices().writeAsCsv(argPathOut + colour,
-					WriteMode.OVERWRITE);
+			/*colourGraph.getVertices().writeAsCsv(argPathOut + colour,"\n",
+					WriteMode.OVERWRITE);*/
+			colourGraph.getVertices().writeAsCsv(argPathOut + colour, "\n", " ", WriteMode.OVERWRITE);
 
 			env.execute("Third build colour " + colour);
 			edgesRemaining = collection.get(0);
