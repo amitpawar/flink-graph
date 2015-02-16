@@ -67,9 +67,6 @@ public class GraphColouringExample {
 					.run(algorithm);
 			System.out.println("ResultGraph");
 			
-			resultGraph.getVertices().writeAsCsv(argPathOut + colour,
-					WriteMode.OVERWRITE);
-			env.execute("Second build colour " + colour);
 
 			graphFiltered = resultGraph.filterOnVertices(new FilterVertex());
 			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> colourGraph = resultGraph
@@ -94,7 +91,7 @@ public class GraphColouringExample {
 			colour++;
 			
 			RemoteCollectorImpl.shutdownAll();
-
+			System.gc();
 			// check if the filtered result is empty, if so, break colour++;
 		} while (edgesRemaining != 0);
 
