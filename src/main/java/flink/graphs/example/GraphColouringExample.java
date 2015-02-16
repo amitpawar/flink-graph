@@ -75,17 +75,12 @@ public class GraphColouringExample {
 			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> colourGraph = resultGraph
 					.filterOnVertices(new FilterNonColourVertex());
 
-
-			final ArrayList<Integer> collection = new ArrayList<Integer>();
 			DataSet<Integer> num = graphFiltered.numberOfEdges();
-			RemoteCollectorImpl.collectLocal(num,
-					new RemoteCollectorConsumer<Integer>() {
-						// user defined IRemoteCollectorConsumer
-						@Override
-						public void collect(Integer element) {
-							collection.add(element);
-						}
-					});
+			ArrayList<Integer> collection = new ArrayList<Integer>();
+			
+			RemoteCollectorImpl.collectLocal(num, collection);
+			
+			
 			colourGraph.getVertices().writeAsCsv(argPathOut + colour,
 					WriteMode.OVERWRITE);
 
@@ -97,6 +92,8 @@ public class GraphColouringExample {
 			System.out.println("Edges remaining: " + edgesRemaining
 					+ " Colour: " + colour);
 			colour++;
+			
+			RemoteCollectorImpl.shutdownAll();
 
 			// check if the filtered result is empty, if so, break colour++;
 		} while (edgesRemaining != 0);
