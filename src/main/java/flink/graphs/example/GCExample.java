@@ -37,16 +37,23 @@ import flink.graphs.utils.*;
 
 public class GCExample {
 
+	private static String argPathToArc = "";
+	private static String argPathOut = "";
+	private static String cachePath = "";
 	private static int maxiteration;
+	
 
 	public static void main(String[] args) throws Exception {
 
+		if (!parseParameters(args)) {
+			return;
+		}
 		//ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 		ExecutionEnvironment env = ExecutionEnvironment.createLocalEnvironment();
 		
 		maxiteration = 10;
 
-		DataSource<String> input = env.readTextFile("/Users/dgll/graph6");
+		DataSource<String> input = env.readTextFile(argPathToArc);
 
 		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodes = input.flatMap(new NodeReader()).distinct();
 
@@ -55,9 +62,9 @@ public class GCExample {
 		Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph = new Graph<Long, Tuple4<Integer,Integer, Integer, Integer>, NullValue>(nodes, edges, env);
 
 		int colour = 0;
-		int verticesRemaining = 0;
+		int edgesRemaining = 0;
 
-		String cachePath = "/Users/dgll/IT4BI/IMPRO3/fourthOut/cache";
+		//String cachePath = "/Users/dgll/IT4BI/IMPRO3/fourthOut/cache";
 		String nodesPath = cachePath + "/nodes/state" + "_" + 0;
 		String edgesPath = cachePath + "/edges/state" + "_" + 0;
 		
@@ -110,7 +117,7 @@ public class GCExample {
 			GraphColouring<Long> algorithm = new GraphColouring<Long>(maxiteration, colour);
 			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> resultGraph = graph2.run(algorithm);
 			System.out.println("ResultGraph");
-			resultGraph.getVertices().writeAsCsv("/Users/dgll/IT4BI/IMPRO3/fourthOut/res"+colour, WriteMode.OVERWRITE);
+			resultGraph.getVertices().writeAsCsv(argPathOut+colour, WriteMode.OVERWRITE);
 			
 			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> nonColourGraph = resultGraph.filterOnVertices(new FilterVertex());
 			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> colourGraph = resultGraph.filterOnVertices(new FilterNonColourVertex());
@@ -125,7 +132,7 @@ public class GCExample {
 							collection.add(element);
 						}
 					});
-			colourGraph.getVertices().writeAsCsv("/Users/dgll/IT4BI/IMPRO3/fourthOut/op"+colour, WriteMode.OVERWRITE);
+			colourGraph.getVertices().writeAsCsv(argPathOut+colour, WriteMode.OVERWRITE);
 		
 			DataSet<Vertex<Long,Tuple4<Integer, Integer, Integer, Integer>>> nonColoredNodesAsTuple2
 							= nonColourGraph.getVertices().map(new VertexToTuple2Map());
@@ -138,12 +145,12 @@ public class GCExample {
 			//nonColourGraph.getEdgesAsTuple3().write(edgesOutput, cachePath + "/nodes/state" + "_" + 0);
 			
 			env.execute("Third build colour " + colour);
-			verticesRemaining = collection.get(0);
+			edgesRemaining = collection.get(0);
 
-			System.out.println("Vertices remaining: " + verticesRemaining + " Colour: " + colour);
+			System.out.println("Edges remaining: " + edgesRemaining + " Colour: " + colour);
 			colour++;
 
-		} while (verticesRemaining != 0);
+		} while (edgesRemaining != 0);
 		
 		
 		nodesInput.setFilePath(nodesPath);
@@ -158,7 +165,7 @@ public class GCExample {
 		graph2 = graph2.joinWithVertices(degrees, new ColourIsolatedNodes<Long>(colour));
 		System.out.println("ColourIsolatedNodes");
 		//graphFiltered.getVertices().print();
-		graph2.getVertices().writeAsCsv("/Users/dgll/IT4BI/IMPRO3/fourthOut/iso"+colour, WriteMode.OVERWRITE);
+		graph2.getVertices().writeAsCsv(argPathOut+colour, WriteMode.OVERWRITE);
 		env.execute("First build colour " + colour);
 		
 		//outGraph.getVertices().writeAsCsv("/home/amit/impro/output/op"+(colour+1), WriteMode.OVERWRITE);
@@ -293,6 +300,22 @@ public class GCExample {
 				collector.collect(new Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>(target, new Tuple4<Integer, Integer, Integer, Integer>(-1, -1, -1, -1)));
 			}
 		}
+	}
+	
+	public static boolean parseParameters(String[] args) {
+
+		if (args.length < 4 || args.length > 4) {
+			System.err
+					.println("Usage: [path to arc file] [output path] [cache path] [maxIterations]");
+			return false;
+		}
+
+		argPathToArc = args[0];		
+		argPathOut = args[1];
+		cachePath = args[2];
+		maxiteration = Integer.parseInt(args[3]);
+
+		return true;
 	}
 
 }
