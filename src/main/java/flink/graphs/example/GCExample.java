@@ -61,35 +61,35 @@ public class GCExample {
 		String nodesPath = cachePath + "/nodes/state" + "_" + 0;
 		String edgesPath = cachePath + "/edges/state" + "_" + 0;
 		
-		TupleTypeInfo<Tuple2<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesType = new TupleTypeInfo<>(BasicTypeInfo.getInfoFor(Long.class), TypeInfoParser.parse("Tuple4<Integer, Integer, Integer, Integer>"));
-		TypeSerializerOutputFormat<Tuple2<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesOutput = new TypeSerializerOutputFormat<>();
+		TupleTypeInfo<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesType = new TupleTypeInfo<>(BasicTypeInfo.getInfoFor(Long.class), TypeInfoParser.parse("Tuple4<Integer, Integer, Integer, Integer>"));
+		TypeSerializerOutputFormat<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesOutput = new TypeSerializerOutputFormat<>();
 		nodesOutput.setInputType(nodesType);
 		nodesOutput.setSerializer(nodesType.createSerializer());
 		nodesOutput.setWriteMode(FileSystem.WriteMode.OVERWRITE);
 		nodesOutput.setOutputDirectoryMode(FileOutputFormat.OutputDirectoryMode.ALWAYS);
 		nodesOutput.setOutputFilePath(new Path(nodesPath));
 		
-		TypeSerializerInputFormat<Tuple2<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesInput = new TypeSerializerInputFormat<>(nodesType.createSerializer());
+		TypeSerializerInputFormat<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesInput = new TypeSerializerInputFormat<>(nodesType.createSerializer());
 		nodesInput.setFilePath(nodesPath);
 		//graph.getVerticesAsTuple2().write(nodesOutput, nodesPath);
-		DataSet<Tuple2<Long,Tuple4<Integer, Integer, Integer, Integer>>> nodesAsTuple2 = graph.getVertices().map(new VertexToTuple2Map());
-		FileOutputFormat<Tuple2<Long, Tuple4<Integer, Integer, Integer, Integer>>> opVFormat = nodesOutput;
+		DataSet<Vertex<Long,Tuple4<Integer, Integer, Integer, Integer>>> nodesAsTuple2 = graph.getVertices().map(new VertexToTuple2Map());
+		FileOutputFormat<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> opVFormat = nodesOutput;
 		nodesAsTuple2.write(opVFormat, nodesPath);
 		
 		
-		TupleTypeInfo<Tuple3<Long, Long, NullValue>> edgesType = new TupleTypeInfo<>(BasicTypeInfo.getInfoFor(Long.class), BasicTypeInfo.getInfoFor(Long.class), TypeInfoParser.parse("NullValue"));
-		TypeSerializerOutputFormat<Tuple3<Long, Long, NullValue>> edgesOutput = new TypeSerializerOutputFormat<>();
+		TupleTypeInfo<Edge< Long, NullValue>> edgesType = new TupleTypeInfo<>(BasicTypeInfo.getInfoFor(Long.class), BasicTypeInfo.getInfoFor(Long.class), TypeInfoParser.parse("NullValue"));
+		TypeSerializerOutputFormat<Edge<Long,NullValue>> edgesOutput = new TypeSerializerOutputFormat<>();
 		edgesOutput.setInputType(edgesType);
 		edgesOutput.setSerializer(edgesType.createSerializer());
 		edgesOutput.setWriteMode(FileSystem.WriteMode.OVERWRITE);
 		edgesOutput.setOutputDirectoryMode(FileOutputFormat.OutputDirectoryMode.ALWAYS);
 		edgesOutput.setOutputFilePath(new Path(edgesPath));
 		
-		TypeSerializerInputFormat<Tuple3<Long, Long, NullValue>> edgesInput = new TypeSerializerInputFormat<>(edgesType.createSerializer());
+		TypeSerializerInputFormat<Edge<Long, NullValue>> edgesInput = new TypeSerializerInputFormat<>(edgesType.createSerializer());
 		edgesInput.setFilePath(edgesPath);
 		//graph.getEdgesAsTuple3().write(edgesOutput, edgesPath);
-		DataSet<Tuple3<Long, Long, NullValue>> edgesAsTuple3 = graph.getEdges().map(new EdgeToTuple3Map());
-		FileOutputFormat<Tuple3<Long, Long, NullValue>> opEFormat = edgesOutput;
+		DataSet<Edge< Long, NullValue>> edgesAsTuple3 = graph.getEdges().map(new EdgeToTuple3Map());
+		FileOutputFormat<Edge<Long, NullValue>> opEFormat = edgesOutput;
 		edgesAsTuple3.write(opEFormat, edgesPath);
 		
 		
@@ -101,7 +101,7 @@ public class GCExample {
 			edgesInput.setFilePath(edgesPath);
 			DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodess = env.createInput(nodesInput, nodesType);
 			System.out.println(nodess.getType().getArity());
-			DataSet<Tuple3<Long, Long, NullValue>> edgess = env.createInput(edgesInput, edgesType);
+			DataSet<Edge<Long,  NullValue>> edgess = env.createInput(edgesInput, edgesType);
 			
 			DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesss = nodess.map(new VertexMapper());
 			DataSet<Edge<Long, NullValue>> edgesss = edgess.map(new EdgeMapper());
@@ -127,8 +127,15 @@ public class GCExample {
 					});
 			colourGraph.getVertices().writeAsCsv("/Users/dgll/IT4BI/IMPRO3/fourthOut/op"+colour, WriteMode.OVERWRITE);
 		
-			nonColourGraph.getVerticesAsTuple2().write(nodesOutput, cachePath + "/nodes/state" + "_" + 0);
-			nonColourGraph.getEdgesAsTuple3().write(edgesOutput, cachePath + "/edges/state" + "_" + 0);
+			DataSet<Vertex<Long,Tuple4<Integer, Integer, Integer, Integer>>> nonColoredNodesAsTuple2
+							= nonColourGraph.getVertices().map(new VertexToTuple2Map());
+			nonColoredNodesAsTuple2.write(opVFormat, cachePath+ "/nodes/state" + "_" + 0);
+			
+			DataSet<Edge<Long,NullValue>> nonColoredEdgesAsTuple3 =
+					nonColourGraph.getEdges().map(new EdgeToTuple3Map());
+			nonColoredEdgesAsTuple3.write(opEFormat, cachePath+ "/nodes/state" + "_" + 0);
+			//nonColourGraph.getVerticesAsTuple2().write(nodesOutput, cachePath + "/nodes/state" + "_" + 0);
+			//nonColourGraph.getEdgesAsTuple3().write(edgesOutput, cachePath + "/nodes/state" + "_" + 0);
 			
 			env.execute("Third build colour " + colour);
 			verticesRemaining = collection.get(0);
@@ -141,8 +148,8 @@ public class GCExample {
 		
 		nodesInput.setFilePath(nodesPath);
 		edgesInput.setFilePath(edgesPath);
-		DataSet<Tuple2<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodess = env.createInput(nodesInput, nodesType);
-		DataSet<Tuple3<Long, Long, NullValue>> edgess = env.createInput(edgesInput, edgesType);
+		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodess = env.createInput(nodesInput, nodesType);
+		DataSet<Edge<Long, NullValue>> edgess = env.createInput(edgesInput, edgesType);
 		
 		//Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer,Integer, Integer, Integer>, NullValue>(nodess, edgess, env);//Graph.fromTupleDataSet(nodess, edgess, env);
 		Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer,Integer, Integer, Integer>, NullValue>(nodess, edgess, env);
