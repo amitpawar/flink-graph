@@ -64,7 +64,7 @@ public class GCExample {
 		int colour = 0;
 		int edgesRemaining = 0;
 
-		//String cachePath = "/Users/dgll/IT4BI/IMPRO3/fourthOut/cache";
+	
 		String nodesPath = cachePath + "/nodes/state" + "_" + 0;
 		String edgesPath = cachePath + "/edges/state" + "_" + 0;
 		
@@ -141,8 +141,7 @@ public class GCExample {
 			DataSet<Edge<Long,NullValue>> nonColoredEdgesAsTuple3 =
 					nonColourGraph.getEdges().map(new EdgeToTuple3Map());
 			nonColoredEdgesAsTuple3.write(opEFormat, cachePath+ "/edges/state" + "_" + ((colour+1)%2));
-			//nonColourGraph.getVerticesAsTuple2().write(nodesOutput, cachePath + "/nodes/state" + "_" + 0);
-			//nonColourGraph.getEdgesAsTuple3().write(edgesOutput, cachePath + "/nodes/state" + "_" + 0);
+			
 			
 			env.execute("Third build colour " + colour);
 			edgesRemaining = collection.get(0);
@@ -155,21 +154,24 @@ public class GCExample {
 		
 		nodesInput.setFilePath(cachePath+ "/nodes/state" + "_" + ((colour)%2));
 		edgesInput.setFilePath(cachePath+ "/edges/state" + "_" + ((colour)%2));
-		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodess = env.createInput(nodesInput, nodesType);
-		DataSet<Edge<Long, NullValue>> edgess = env.createInput(edgesInput, edgesType);
+		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesso = env.createInput(nodesInput, nodesType);
+		DataSet<Edge<Long, NullValue>> edgesso = env.createInput(edgesInput, edgesType);
+		
+		
+		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodessso = nodesso.map(new VertexMapper());
+		DataSet<Edge<Long, NullValue>> edgessso = edgesso.map(new EdgeMapper());
 		
 		//Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer,Integer, Integer, Integer>, NullValue>(nodess, edgess, env);//Graph.fromTupleDataSet(nodess, edgess, env);
-		Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer,Integer, Integer, Integer>, NullValue>(nodess, edgess, env);
+		Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer,Integer, Integer, Integer>, NullValue>(nodessso, edgessso, env);
 		
 		DataSet<Tuple2<Long, Long>> degrees = graph2.inDegrees();
 		graph2 = graph2.joinWithVertices(degrees, new ColourIsolatedNodes<Long>(colour));
 		System.out.println("ColourIsolatedNodes");
-		//graphFiltered.getVertices().print();
+		
 		graph2.getVertices().writeAsCsv(argPathOut+colour, WriteMode.OVERWRITE);
 		env.execute("First build colour " + colour);
 		
-		//outGraph.getVertices().writeAsCsv("/home/amit/impro/output/op"+(colour+1), WriteMode.OVERWRITE);
-		//env.execute();
+		
 		
 		RemoteCollectorImpl.shutdownAll();
 	}
