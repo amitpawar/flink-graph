@@ -33,6 +33,7 @@ import flink.graphs.library.GraphColouring;
 import flink.graphs.Edge;
 import flink.graphs.Graph;
 import flink.graphs.Vertex;
+import flink.graphs.utils.*;
 
 public class GCExample {
 
@@ -70,8 +71,10 @@ public class GCExample {
 		
 		TypeSerializerInputFormat<Tuple2<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesInput = new TypeSerializerInputFormat<>(nodesType.createSerializer());
 		nodesInput.setFilePath(nodesPath);
-		graph.getVerticesAsTuple2().write(nodesOutput, nodesPath);
-		
+		//graph.getVerticesAsTuple2().write(nodesOutput, nodesPath);
+		DataSet<Tuple2<Long,Tuple4<Integer, Integer, Integer, Integer>>> nodesAsTuple2 = graph.getVertices().map(new VertexToTuple2Map());
+		FileOutputFormat<Tuple2<Long, Tuple4<Integer, Integer, Integer, Integer>>> opVFormat = nodesOutput;
+		nodesAsTuple2.write(opVFormat, nodesPath);
 		
 		
 		TupleTypeInfo<Tuple3<Long, Long, NullValue>> edgesType = new TupleTypeInfo<>(BasicTypeInfo.getInfoFor(Long.class), BasicTypeInfo.getInfoFor(Long.class), TypeInfoParser.parse("NullValue"));
@@ -84,7 +87,11 @@ public class GCExample {
 		
 		TypeSerializerInputFormat<Tuple3<Long, Long, NullValue>> edgesInput = new TypeSerializerInputFormat<>(edgesType.createSerializer());
 		edgesInput.setFilePath(edgesPath);
-		graph.getEdgesAsTuple3().write(edgesOutput, edgesPath);
+		//graph.getEdgesAsTuple3().write(edgesOutput, edgesPath);
+		DataSet<Tuple3<Long, Long, NullValue>> edgesAsTuple3 = graph.getEdges().map(new EdgeToTuple3Map());
+		FileOutputFormat<Tuple3<Long, Long, NullValue>> opEFormat = edgesOutput;
+		edgesAsTuple3.write(opEFormat, edgesPath);
+		
 		
 		env.execute("GraphColouring prepare");
 		do {
@@ -92,13 +99,14 @@ public class GCExample {
 			
 			nodesInput.setFilePath(nodesPath);
 			edgesInput.setFilePath(edgesPath);
-			DataSet<Tuple2<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodess = env.createInput(nodesInput, nodesType);
+			DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodess = env.createInput(nodesInput, nodesType);
 			System.out.println(nodess.getType().getArity());
 			DataSet<Tuple3<Long, Long, NullValue>> edgess = env.createInput(edgesInput, edgesType);
 			
 			DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesss = nodess.map(new VertexMapper());
 			DataSet<Edge<Long, NullValue>> edgesss = edgess.map(new EdgeMapper());
-			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = Graph.fromDataSet(nodesss, edgesss, env);
+			//Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = Graph.fromDataSet(nodesss, edgesss, env);
+			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer,Integer,Integer,Integer>, NullValue>(nodess, edgesss, env);
 			GraphColouring<Long> algorithm = new GraphColouring<Long>(maxiteration, colour);
 			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> resultGraph = graph2.run(algorithm);
 			System.out.println("ResultGraph");
