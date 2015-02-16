@@ -53,20 +53,20 @@ public class GraphColouringExample {
 		int colour = 0;
 		Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graphFiltered = graph;
 
-		// check if the filtered result is empty, if so, break colour++; }
+		
 
-		int verticesRemaining = 0;
+		int edgesRemaining = 0;
 
 		do {
 			System.out.println("Colours:" + colour);
 			GraphColouring<Long> algorithm = new GraphColouring<Long>(
 					maxiteration, colour);
 
-			// graphFiltered.mapVertices(new ColourIsolatedNodes<Long>(colour));
+			
 			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> resultGraph = graphFiltered
 					.run(algorithm);
 			System.out.println("ResultGraph");
-			// resultGraph.getVertices().print();
+			
 			resultGraph.getVertices().writeAsCsv(argPathOut + colour,
 					WriteMode.OVERWRITE);
 			env.execute("Second build colour " + colour);
@@ -83,7 +83,6 @@ public class GraphColouringExample {
 						// user defined IRemoteCollectorConsumer
 						@Override
 						public void collect(Integer element) {
-							// System.out.println(element);
 							collection.add(element);
 						}
 					});
@@ -91,32 +90,24 @@ public class GraphColouringExample {
 					WriteMode.OVERWRITE);
 
 			env.execute("Third build colour " + colour);
-			verticesRemaining = collection.get(0);
+			edgesRemaining = collection.get(0);
 
-			// outGraph.getVertices().print();
-			// graphNoColour.getVertices().print();
-			// colourGraph.getVertices().writeAsCsv("/Users/dgll/IT4BI/IMPRO3/firstOut/op"+colour,
-			// WriteMode.OVERWRITE);
+		
 
-			System.out.println("Vertices remaining: " + verticesRemaining
+			System.out.println("Edges remaining: " + edgesRemaining
 					+ " Colour: " + colour);
 			colour++;
 
 			// check if the filtered result is empty, if so, break colour++;
-		} while (verticesRemaining != 0);
+		} while (edgesRemaining != 0);
 
 		DataSet<Tuple2<Long, Long>> degrees = graphFiltered.getDegrees();
 		graphFiltered = graphFiltered.joinWithVertices(degrees,
 				new ColourIsolatedNodes<Long>(colour));
-		// System.out.println("ColourIsolatedNodes");
-		// graphFiltered.getVertices().print();
+		
 		graphFiltered.getVertices().writeAsCsv(argPathOut + colour,
 				WriteMode.OVERWRITE);
 		env.execute("First build colour " + colour);
-
-		// outGraph.getVertices().writeAsCsv("/home/amit/impro/output/op"+(colour+1),
-		// WriteMode.OVERWRITE);
-		// env.execute();
 
 		RemoteCollectorImpl.shutdownAll();
 	}
