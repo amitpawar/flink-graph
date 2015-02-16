@@ -104,8 +104,8 @@ public class GCExample {
 		do {
 			System.out.println("Colours:" + colour);
 			
-			nodesInput.setFilePath(nodesPath);
-			edgesInput.setFilePath(edgesPath);
+			nodesInput.setFilePath(cachePath+ "/nodes/state" + "_" + ((colour)%2));
+			edgesInput.setFilePath(cachePath+ "/edges/state" + "_" + ((colour)%2));
 			DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodess = env.createInput(nodesInput, nodesType);
 			System.out.println(nodess.getType().getArity());
 			DataSet<Edge<Long,  NullValue>> edgess = env.createInput(edgesInput, edgesType);
@@ -113,7 +113,7 @@ public class GCExample {
 			DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesss = nodess.map(new VertexMapper());
 			DataSet<Edge<Long, NullValue>> edgesss = edgess.map(new EdgeMapper());
 			//Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = Graph.fromDataSet(nodesss, edgesss, env);
-			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer,Integer,Integer,Integer>, NullValue>(nodess, edgesss, env);
+			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer,Integer,Integer,Integer>, NullValue>(nodesss, edgesss, env);
 			GraphColouring<Long> algorithm = new GraphColouring<Long>(maxiteration, colour);
 			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> resultGraph = graph2.run(algorithm);
 			System.out.println("ResultGraph");
@@ -136,11 +136,11 @@ public class GCExample {
 		
 			DataSet<Vertex<Long,Tuple4<Integer, Integer, Integer, Integer>>> nonColoredNodesAsTuple2
 							= nonColourGraph.getVertices().map(new VertexToTuple2Map());
-			nonColoredNodesAsTuple2.write(opVFormat, cachePath+ "/nodes/state" + "_" + 0);
+			nonColoredNodesAsTuple2.write(opVFormat, cachePath+ "/nodes/state" + "_" + ((colour+1)%2));
 			
 			DataSet<Edge<Long,NullValue>> nonColoredEdgesAsTuple3 =
 					nonColourGraph.getEdges().map(new EdgeToTuple3Map());
-			nonColoredEdgesAsTuple3.write(opEFormat, cachePath+ "/nodes/state" + "_" + 0);
+			nonColoredEdgesAsTuple3.write(opEFormat, cachePath+ "/edges/state" + "_" + ((colour+1)%2));
 			//nonColourGraph.getVerticesAsTuple2().write(nodesOutput, cachePath + "/nodes/state" + "_" + 0);
 			//nonColourGraph.getEdgesAsTuple3().write(edgesOutput, cachePath + "/nodes/state" + "_" + 0);
 			
@@ -153,8 +153,8 @@ public class GCExample {
 		} while (edgesRemaining != 0);
 		
 		
-		nodesInput.setFilePath(nodesPath);
-		edgesInput.setFilePath(edgesPath);
+		nodesInput.setFilePath(cachePath+ "/nodes/state" + "_" + ((colour)%2));
+		edgesInput.setFilePath(cachePath+ "/edges/state" + "_" + ((colour)%2));
 		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodess = env.createInput(nodesInput, nodesType);
 		DataSet<Edge<Long, NullValue>> edgess = env.createInput(edgesInput, edgesType);
 		
