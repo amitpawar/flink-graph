@@ -39,90 +39,116 @@ public class GCExample {
 
 	private static String argPathToArc = "";
 	private static String argPathOut = "";
-	private static String cachePath = "";
 	private static int maxiteration;
-	
 
 	public static void main(String[] args) throws Exception {
 
 		if (!parseParameters(args)) {
 			return;
 		}
-		ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
-		
-		
+		ExecutionEnvironment env = ExecutionEnvironment
+				.getExecutionEnvironment();
+
 		DataSource<String> input = env.readTextFile(argPathToArc);
 
-		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodes = input.flatMap(new NodeReader()).distinct();
+		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodes = input
+				.flatMap(new NodeReader()).distinct();
 
-		DataSet<Edge<Long, NullValue>> edges = input.flatMap(new EdgeReader()).distinct();
+		DataSet<Edge<Long, NullValue>> edges = input.flatMap(new EdgeReader())
+				.distinct();
 
-		Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph = new Graph<Long, Tuple4<Integer,Integer, Integer, Integer>, NullValue>(nodes, edges, env);
+		Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph = new Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue>(
+				nodes, edges, env);
 
 		int colour = 0;
 		int edgesRemaining = 0;
 
-	
-		String nodesPath = cachePath + "/nodes/state" + "_" + 0;
-		String edgesPath = cachePath + "/edges/state" + "_" + 0;
-		
-		TupleTypeInfo<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesType = new TupleTypeInfo<>(BasicTypeInfo.getInfoFor(Long.class), TypeInfoParser.parse("Tuple4<Integer, Integer, Integer, Integer>"));
+		String nodesPath = argPathOut + "/nodes/state" + "_" + 0;
+		String edgesPath = argPathOut + "/edges/state" + "_" + 0;
+
+		TupleTypeInfo<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesType = new TupleTypeInfo<>(
+				BasicTypeInfo.getInfoFor(Long.class),
+				TypeInfoParser
+						.parse("Tuple4<Integer, Integer, Integer, Integer>"));
 		TypeSerializerOutputFormat<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesOutput = new TypeSerializerOutputFormat<>();
 		nodesOutput.setInputType(nodesType);
 		nodesOutput.setSerializer(nodesType.createSerializer());
 		nodesOutput.setWriteMode(FileSystem.WriteMode.OVERWRITE);
-		nodesOutput.setOutputDirectoryMode(FileOutputFormat.OutputDirectoryMode.ALWAYS);
+		nodesOutput
+				.setOutputDirectoryMode(FileOutputFormat.OutputDirectoryMode.ALWAYS);
 		nodesOutput.setOutputFilePath(new Path(nodesPath));
-		
-		TypeSerializerInputFormat<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesInput = new TypeSerializerInputFormat<>(nodesType.createSerializer());
+
+		TypeSerializerInputFormat<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesInput = new TypeSerializerInputFormat<>(
+				nodesType.createSerializer());
 		nodesInput.setFilePath(nodesPath);
-		//graph.getVerticesAsTuple2().write(nodesOutput, nodesPath);
-		DataSet<Vertex<Long,Tuple4<Integer, Integer, Integer, Integer>>> nodesAsTuple2 = graph.getVertices().map(new VertexToTuple2Map());
+		// graph.getVerticesAsTuple2().write(nodesOutput, nodesPath);
+		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesAsTuple2 = graph
+				.getVertices().map(new VertexToTuple2Map());
 		FileOutputFormat<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> opVFormat = nodesOutput;
 		nodesAsTuple2.write(opVFormat, nodesPath);
-		
-		
-		TupleTypeInfo<Edge< Long, NullValue>> edgesType = new TupleTypeInfo<>(BasicTypeInfo.getInfoFor(Long.class), BasicTypeInfo.getInfoFor(Long.class), TypeInfoParser.parse("NullValue"));
-		TypeSerializerOutputFormat<Edge<Long,NullValue>> edgesOutput = new TypeSerializerOutputFormat<>();
+
+		TupleTypeInfo<Edge<Long, NullValue>> edgesType = new TupleTypeInfo<>(
+				BasicTypeInfo.getInfoFor(Long.class),
+				BasicTypeInfo.getInfoFor(Long.class),
+				TypeInfoParser.parse("NullValue"));
+		TypeSerializerOutputFormat<Edge<Long, NullValue>> edgesOutput = new TypeSerializerOutputFormat<>();
 		edgesOutput.setInputType(edgesType);
 		edgesOutput.setSerializer(edgesType.createSerializer());
 		edgesOutput.setWriteMode(FileSystem.WriteMode.OVERWRITE);
-		edgesOutput.setOutputDirectoryMode(FileOutputFormat.OutputDirectoryMode.ALWAYS);
+		edgesOutput
+				.setOutputDirectoryMode(FileOutputFormat.OutputDirectoryMode.ALWAYS);
 		edgesOutput.setOutputFilePath(new Path(edgesPath));
-		
-		TypeSerializerInputFormat<Edge<Long, NullValue>> edgesInput = new TypeSerializerInputFormat<>(edgesType.createSerializer());
+
+		TypeSerializerInputFormat<Edge<Long, NullValue>> edgesInput = new TypeSerializerInputFormat<>(
+				edgesType.createSerializer());
 		edgesInput.setFilePath(edgesPath);
-		//graph.getEdgesAsTuple3().write(edgesOutput, edgesPath);
-		DataSet<Edge< Long, NullValue>> edgesAsTuple3 = graph.getEdges().map(new EdgeToTuple3Map());
+		// graph.getEdgesAsTuple3().write(edgesOutput, edgesPath);
+		DataSet<Edge<Long, NullValue>> edgesAsTuple3 = graph.getEdges().map(
+				new EdgeToTuple3Map());
 		FileOutputFormat<Edge<Long, NullValue>> opEFormat = edgesOutput;
 		edgesAsTuple3.write(opEFormat, edgesPath);
-		
-		
+
 		env.execute("GraphColouring prepare");
 		do {
 			System.out.println("Colours:" + colour);
-			
-			nodesInput.setFilePath(cachePath+ "/nodes/state" + "_" + ((colour)%2));
-			edgesInput.setFilePath(cachePath+ "/edges/state" + "_" + ((colour)%2));
-			DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodess = env.createInput(nodesInput, nodesType);
+
+			nodesInput.setFilePath(argPathOut + "/nodes/state" + "_"
+					+ ((colour) % 2));
+			edgesInput.setFilePath(argPathOut + "/edges/state" + "_"
+					+ ((colour) % 2));
+			DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodess = env
+					.createInput(nodesInput, nodesType);
 			System.out.println(nodess.getType().getArity());
-			DataSet<Edge<Long,  NullValue>> edgess = env.createInput(edgesInput, edgesType);
-			
-			DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesss = nodess.map(new VertexMapper());
-			DataSet<Edge<Long, NullValue>> edgesss = edgess.map(new EdgeMapper());
-			//Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = Graph.fromDataSet(nodesss, edgesss, env);
-			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer,Integer,Integer,Integer>, NullValue>(nodesss, edgesss, env);
-			GraphColouring<Long> algorithm = new GraphColouring<Long>(maxiteration, colour);
-			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> resultGraph = graph2.run(algorithm);
+			DataSet<Edge<Long, NullValue>> edgess = env.createInput(edgesInput,
+					edgesType);
+
+			DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesss = nodess
+					.map(new VertexMapper());
+			DataSet<Edge<Long, NullValue>> edgesss = edgess
+					.map(new EdgeMapper());
+			// Graph<Long, Tuple4<Integer, Integer, Integer, Integer>,
+			// NullValue> graph2 = Graph.fromDataSet(nodesss, edgesss, env);
+			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue>(
+					nodesss, edgesss, env);
+			DataSet<Tuple2<Long, Long>> degrees = graph2.inDegrees();
+			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph3 = graph2
+					.joinWithVertices(degrees, new DegreeInit<Long>());
+			GraphColouring<Long> algorithm = new GraphColouring<Long>(
+					maxiteration, colour);
+			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> resultGraph = graph3
+					.run(algorithm);
 			System.out.println("ResultGraph");
-			resultGraph.getVertices().writeAsCsv(argPathOut+colour, WriteMode.OVERWRITE);
-			
-			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> nonColourGraph = resultGraph.filterOnVertices(new FilterVertex());
-			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> colourGraph = resultGraph.filterOnVertices(new FilterNonColourVertex());
+			// resultGraph.getVertices().writeAsCsv(argPathOut+colour,
+			// WriteMode.OVERWRITE);
+
+			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> nonColourGraph = resultGraph
+					.filterOnVertices(new FilterVertex());
+			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> colourGraph = resultGraph
+					.filterOnVertices(new FilterNonColourVertex());
 			System.out.println("FilteredGraph");
 
 			final ArrayList<Integer> collection = new ArrayList<Integer>();
-			DataSet<Integer> num = nonColourGraph.numberOfEdges();
+			DataSet<Integer> num = nonColourGraph.numberOfVertices();
 			RemoteCollectorImpl.collectLocal(num,
 					new RemoteCollectorConsumer<Integer>() {
 						@Override
@@ -130,67 +156,48 @@ public class GCExample {
 							collection.add(element);
 						}
 					});
-			colourGraph.getVertices().writeAsCsv(argPathOut+colour, WriteMode.OVERWRITE);
-		
-			DataSet<Vertex<Long,Tuple4<Integer, Integer, Integer, Integer>>> nonColoredNodesAsTuple2
-							= nonColourGraph.getVertices().map(new VertexToTuple2Map());
-			nonColoredNodesAsTuple2.write(opVFormat, cachePath+ "/nodes/state" + "_" + ((colour+1)%2));
-			
-			DataSet<Edge<Long,NullValue>> nonColoredEdgesAsTuple3 =
-					nonColourGraph.getEdges().map(new EdgeToTuple3Map());
-			nonColoredEdgesAsTuple3.write(opEFormat, cachePath+ "/edges/state" + "_" + ((colour+1)%2));
-			
-			
-			env.execute("Third build colour " + colour);
-			edgesRemaining = collection.get(0);
+			colourGraph.getVertices().writeAsCsv(argPathOut + "/colour" + colour, WriteMode.OVERWRITE);
 
-			System.out.println("Edges remaining: " + edgesRemaining + " Colour: " + colour);
+			DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nonColoredNodesAsTuple2 = nonColourGraph
+					.getVertices().map(new VertexToTuple2Map());
+			nonColoredNodesAsTuple2.write(opVFormat, argPathOut + "/nodes/state"+ "_" + ((colour + 1) % 2));
+
+			DataSet<Edge<Long, NullValue>> nonColoredEdgesAsTuple3 = nonColourGraph
+					.getEdges().map(new EdgeToTuple3Map());
+			nonColoredEdgesAsTuple3.write(opEFormat, argPathOut + "/edges/state"+ "_" + ((colour + 1) % 2));
+
+			env.execute("Building colour " + colour);
+			edgesRemaining = collection.get(0);
+			RemoteCollectorImpl.shutdownAll();
+
+			System.out.println("Edges remaining: " + edgesRemaining
+					+ " Colour: " + colour);
 			colour++;
 
 		} while (edgesRemaining != 0);
-		
-		
-		nodesInput.setFilePath(cachePath+ "/nodes/state" + "_" + ((colour)%2));
-		edgesInput.setFilePath(cachePath+ "/edges/state" + "_" + ((colour)%2));
-		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodesso = env.createInput(nodesInput, nodesType);
-		DataSet<Edge<Long, NullValue>> edgesso = env.createInput(edgesInput, edgesType);
-		
-		
-		DataSet<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> nodessso = nodesso.map(new VertexMapper());
-		DataSet<Edge<Long, NullValue>> edgessso = edgesso.map(new EdgeMapper());
-		
-		//Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer,Integer, Integer, Integer>, NullValue>(nodess, edgess, env);//Graph.fromTupleDataSet(nodess, edgess, env);
-		Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> graph2 = new Graph<Long, Tuple4<Integer,Integer, Integer, Integer>, NullValue>(nodessso, edgessso, env);
-		
-		DataSet<Tuple2<Long, Long>> degrees = graph2.inDegrees();
-		graph2 = graph2.joinWithVertices(degrees, new ColourIsolatedNodes<Long>(colour));
-		System.out.println("ColourIsolatedNodes");
-		
-		graph2.getVertices().writeAsCsv(argPathOut+colour, WriteMode.OVERWRITE);
-		env.execute("First build colour " + colour);
-		
-		
-		
-		RemoteCollectorImpl.shutdownAll();
+
+	
 	}
 
 	@SuppressWarnings("serial")
-	public static final class VertexMapper<K extends Comparable<K> & Serializable> 
-		implements MapFunction<Tuple2<Long, Tuple4<Integer, Integer, Integer, Integer>>, Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> {
+	public static final class VertexMapper<K extends Comparable<K> & Serializable>
+			implements
+			MapFunction<Tuple2<Long, Tuple4<Integer, Integer, Integer, Integer>>, Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> {
 
 		@Override
 		public Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>> map(
 				Tuple2<Long, Tuple4<Integer, Integer, Integer, Integer>> value)
 				throws Exception {
-			
+
 			return new Vertex<>(value.f0, value.f1);
 		}
-		
+
 	}
-	
+
 	@SuppressWarnings("serial")
-	public static final class EdgeMapper<K extends Comparable<K> & Serializable> 
-		implements MapFunction<Tuple3<Long, Long, NullValue>, Edge<Long, NullValue>> {
+	public static final class EdgeMapper<K extends Comparable<K> & Serializable>
+			implements
+			MapFunction<Tuple3<Long, Long, NullValue>, Edge<Long, NullValue>> {
 
 		@Override
 		public Edge<Long, NullValue> map(Tuple3<Long, Long, NullValue> value)
@@ -198,15 +205,16 @@ public class GCExample {
 			// TODO Auto-generated method stub
 			return new Edge<Long, NullValue>(value.f0, value.f1, value.f2);
 		}
-		
+
 	}
-	
+
 	@SuppressWarnings("serial")
-	public static final class ColourIsolatedNodes<K extends Comparable<K> & Serializable> 
-		implements MapFunction<Tuple2<Tuple4<Integer, Integer, Integer, Integer>, Long>, Tuple4<Integer, Integer, Integer, Integer>> {
-		
+	public static final class ColourIsolatedNodes<K extends Comparable<K> & Serializable>
+			implements
+			MapFunction<Tuple2<Tuple4<Integer, Integer, Integer, Integer>, Long>, Tuple4<Integer, Integer, Integer, Integer>> {
+
 		private Integer colour;
-		
+
 		public ColourIsolatedNodes(Integer colour) {
 			this.colour = colour;
 		}
@@ -221,13 +229,12 @@ public class GCExample {
 			}
 			return value.f0;
 		}
-		
+
 	}
-	
+
 	@SuppressWarnings("serial")
 	public static final class FilterVertex implements
 			FilterFunction<Tuple4<Integer, Integer, Integer, Integer>> {
-
 
 		@Override
 		public boolean filter(Tuple4<Integer, Integer, Integer, Integer> value)
@@ -241,7 +248,6 @@ public class GCExample {
 	public static final class FilterNonColourVertex implements
 			FilterFunction<Tuple4<Integer, Integer, Integer, Integer>> {
 
-
 		@Override
 		public boolean filter(Tuple4<Integer, Integer, Integer, Integer> value)
 				throws Exception {
@@ -249,7 +255,7 @@ public class GCExample {
 			return value.f0 != -1;
 		}
 	}
-	
+
 	@SuppressWarnings("serial")
 	public static class EdgeReader implements
 			FlatMapFunction<String, Edge<Long, NullValue>> {
@@ -264,30 +270,39 @@ public class GCExample {
 				long source = Long.parseLong(tokens[0]);
 				long target = Long.parseLong(tokens[1]);
 
-				collector.collect(new Edge<Long, NullValue>(source, target, new NullValue()));
-				collector.collect(new Edge<Long, NullValue>(target, source, new NullValue()));
+				collector.collect(new Edge<Long, NullValue>(source, target,
+						new NullValue()));
+				collector.collect(new Edge<Long, NullValue>(target, source,
+						new NullValue()));
 			}
 		}
 	}
 
-//	public static final class InitVerticesMapper<K extends Comparable<K> & Serializable>
-//			implements
-//			MapFunction<Vertex<K, Double>, Vertex<Long, Tuple3<Integer, Integer, Integer>>> {
-//
-//		public Vertex<Long, Tuple3<Integer, Integer, Integer>> map(Vertex<K, Double> value) {
-//
-//			
-//			return new Tuple3<Integer, Integer, Integer>(-1, -1, -1);
-//		}
-//	}
-//
 	@SuppressWarnings("serial")
-	public static class NodeReader implements
+	public static final class DegreeInit<K extends Comparable<K> & Serializable> 
+		implements MapFunction<Tuple2<Tuple4<Integer, Integer, Integer, Integer>, Long>, Tuple4<Integer, Integer, Integer, Integer>> {
+
+		@Override
+		public Tuple4<Integer, Integer, Integer, Integer> map(
+				Tuple2<Tuple4<Integer, Integer, Integer, Integer>, Long> value)
+				throws Exception {
+			value.f0.f1 = 0;
+			value.f0.f2 = value.f1.intValue();
+			return value.f0;
+		}
+		
+	}
+	
+	@SuppressWarnings("serial")
+	public static class NodeReader
+			implements
 			FlatMapFunction<String, Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> {
 
 		private static final Pattern SEPARATOR = Pattern.compile("[ \t,]");
 
-		public void flatMap(String s, Collector<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> collector)
+		public void flatMap(
+				String s,
+				Collector<Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>> collector)
 				throws Exception {
 			if (!s.startsWith("%")) {
 				String[] tokens = SEPARATOR.split(s);
@@ -296,24 +311,31 @@ public class GCExample {
 				long source = Long.parseLong(tokens[0]);
 				long target = Long.parseLong(tokens[1]);
 
-				collector.collect(new Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>(source, new Tuple4<Integer, Integer, Integer, Integer>(-1, -1, -1, -1)));
-				collector.collect(new Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>(target, new Tuple4<Integer, Integer, Integer, Integer>(-1, -1, -1, -1)));
+				collector
+						.collect(new Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>(
+								source,
+								new Tuple4<Integer, Integer, Integer, Integer>(
+										-1, -1, -1, -1)));
+				collector
+						.collect(new Vertex<Long, Tuple4<Integer, Integer, Integer, Integer>>(
+								target,
+								new Tuple4<Integer, Integer, Integer, Integer>(
+										-1, -1, -1, -1)));
 			}
 		}
 	}
-	
+
 	public static boolean parseParameters(String[] args) {
 
-		if (args.length < 4 || args.length > 4) {
+		if (args.length < 3 || args.length > 3) {
 			System.err
-					.println("Usage: [path to arc file] [output path] [cache path] [maxIterations]");
+					.println("Usage: [path to arc file] [output path] [maxIterations]");
 			return false;
 		}
 
-		argPathToArc = args[0];		
+		argPathToArc = args[0];
 		argPathOut = args[1];
-		cachePath = args[2];
-		maxiteration = Integer.parseInt(args[3]);
+		maxiteration = Integer.parseInt(args[2]);
 
 		return true;
 	}
