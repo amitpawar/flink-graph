@@ -67,7 +67,10 @@ public class GraphColouringExample {
 					.run(algorithm);
 			System.out.println("ResultGraph");
 			
-
+			
+			
+			//Remote
+			
 			graphFiltered = resultGraph.filterOnVertices(new FilterVertex());
 			Graph<Long, Tuple4<Integer, Integer, Integer, Integer>, NullValue> colourGraph = resultGraph
 					.filterOnVertices(new FilterNonColourVertex());

@@ -176,7 +176,7 @@ public class GCExample {
 
 		} while (edgesRemaining != 0);
 
-	
+
 	}
 
 	@SuppressWarnings("serial")
